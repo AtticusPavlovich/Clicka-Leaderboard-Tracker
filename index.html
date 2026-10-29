@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clicka! Leaderboard Tracker</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <main class="dashboard-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Performance board</p>
+          <h1>Clicka Leaderboard</h1>
+        </div>
+
+        <div class="header-actions">
+          <label class="theme-picker" aria-label="Theme selector">
+            <span class="sr-only">Theme</span>
+            <select id="theme-select">
+              <option value="midnight">Midnight</option>
+              <option value="blue">Blue</option>
+              <option value="mint">Mint</option>
+              <option value="beige">Beige</option>
+              <option value="grayscale">Grayscale</option>
+              <option value="mono">Mono</option>
+            </select>
+          </label>
+          <span id="last-updated" class="status-pill">Waiting for data...</span>
+        </div>
+      </header>
+
+      <section class="stats-grid">
+        <article class="stat-card accent-purple">
+          <span class="stat-label">Total Clicks</span>
+          <strong id="total-clicks">0</strong>
+        </article>
+        <article class="stat-card accent-gold">
+          <span class="stat-label">Highest Total</span>
+          <strong id="highest-total">0</strong>
+        </article>
+        <article class="stat-card accent-green">
+          <span class="stat-label">Best Daily Jump</span>
+          <strong id="best-jump">0</strong>
+        </article>
+        <article class="stat-card accent-blue">
+          <span class="stat-label">Leader Today</span>
+          <strong id="leader-name">-</strong>
+        </article>
+      </section>
+
+      <section class="chart-grid">
+        <article class="panel chart-panel">
+          <div class="panel-header">
+            <h2>Top Daily Click Increase</h2>
+          </div>
+          <canvas id="clicks-chart" height="220"></canvas>
+        </article>
+
+        <article class="panel chart-panel">
+          <div class="panel-header">
+            <h2>Average Daily Increase</h2>
+          </div>
+          <canvas id="growth-chart" height="220"></canvas>
+        </article>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-header">
+          <h2>Leaderboard</h2>
+          <span class="muted">Sorted by Position</span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Player</th>
+                <th>Date</th>
+                <th>Clicks</th>
+                <th>Click Increase</th>
+                <th>Move</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="page-footer">
+      <p>
+        Built by <strong>Spatticus</strong> with design support from
+        <a href="https://calvin.sh/" target="_blank" rel="noreferrer">Calvin Liang</a>.
+      </p>
+      <p class="footer-note">This leaderboard is updated manually, so results may have missing or have slightly inaccurate numbers.</p>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
