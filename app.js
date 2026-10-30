@@ -141,39 +141,16 @@ const filterLatestRows = (rows) => {
 };
 
 const buildTrendData = (rows) => {
-  const validRows = rows.filter((entry) => entry.date && entry.date !== 'Latest' && entry.clicks > 0);
-  const playerMap = new Map();
-
-  validRows.forEach((entry) => {
-    if (!playerMap.has(entry.player)) {
-      playerMap.set(entry.player, []);
-    }
-
-    playerMap.get(entry.player).push({ date: entry.date, clicks: entry.clicks });
-  });
-
-  const deltas = [...playerMap.entries()].map(([player, values]) => {
-    const sortedValues = values
-      .slice()
-      .sort((a, b) => parseSortableDate(a.date) - parseSortableDate(b.date));
-
-    if (sortedValues.length < 2) {
-      return { player, increase: 0 };
-    }
-
-    const last = sortedValues[sortedValues.length - 1].clicks;
-    const previous = sortedValues[sortedValues.length - 2].clicks;
-
-    return { player, increase: last - previous };
-  });
-
-  const sorted = deltas.filter((entry) => entry.increase > 0).sort((a, b) => b.increase - a.increase).slice(0, 8);
+  const sorted = getPlayerDailyClickMetrics(rows)
+    .filter((entry) => entry.dailyClicks > 0)
+    .sort((a, b) => b.dailyClicks - a.dailyClicks)
+    .slice(0, 8);
 
   return {
     labels: sorted.map((item) => item.player),
     datasets: [{
       label: 'Daily click increase',
-      data: sorted.map((item) => Math.round(item.increase)),
+      data: sorted.map((item) => Math.round(item.dailyClicks)),
       backgroundColor: ['#8b5cf6', '#f6c453', '#3dd598', '#4da3ff', '#f472b6', '#22d3ee', '#f97316', '#10b981'],
       borderRadius: 8,
     }],
@@ -181,46 +158,49 @@ const buildTrendData = (rows) => {
 };
 
 const buildGrowthData = (rows) => {
-  const validRows = rows.filter((entry) => entry.date && entry.date !== 'Latest' && entry.clicks > 0);
-  const playerMap = new Map();
-
-  validRows.forEach((entry) => {
-    if (!playerMap.has(entry.player)) {
-      playerMap.set(entry.player, []);
-    }
-
-    playerMap.get(entry.player).push({ date: entry.date, clicks: entry.clicks });
-  });
-
-  const gains = [...playerMap.entries()].map(([player, values]) => {
-    const sortedValues = values
-      .slice()
-      .sort((a, b) => parseSortableDate(a.date) - parseSortableDate(b.date));
-
-    if (sortedValues.length < 2) {
-      return { player, average: 0 };
-    }
-
-    const deltas = [];
-    for (let i = 1; i < sortedValues.length; i += 1) {
-      deltas.push(sortedValues[i].clicks - sortedValues[i - 1].clicks);
-    }
-
-    const average = deltas.length ? deltas.reduce((total, value) => total + value, 0) / deltas.length : 0;
-    return { player, average };
-  });
-
-  const sorted = gains.filter((item) => item.average > 0).sort((a, b) => b.average - a.average).slice(0, 8);
+  const sorted = getPlayerDailyClickMetrics(rows)
+    .filter((item) => item.averageDailyClicks > 0)
+    .sort((a, b) => b.averageDailyClicks - a.averageDailyClicks)
+    .slice(0, 8);
 
   return {
     labels: sorted.map((item) => item.player),
     datasets: [{
       label: 'Avg daily increase',
-      data: sorted.map((item) => Math.round(item.average)),
+      data: sorted.map((item) => Math.round(item.averageDailyClicks)),
       backgroundColor: ['#4da3ff', '#f472b6', '#22d3ee', '#f97316', '#10b981'],
       borderRadius: 8,
     }],
   };
+};
+
+const getPlayerDailyClickMetrics = (rows) => {
+  const playerMap = new Map();
+
+  rows
+    .filter((entry) => entry.date && entry.date !== 'Latest' && entry.clicks > 0)
+    .forEach((entry) => {
+      if (!playerMap.has(entry.player)) {
+        playerMap.set(entry.player, []);
+      }
+
+      playerMap.get(entry.player).push({ date: entry.date, clicks: entry.clicks });
+    });
+
+  return [...playerMap.entries()].map(([player, values]) => {
+    const sortedValues = values
+      .slice()
+      .sort((a, b) => parseSortableDate(a.date) - parseSortableDate(b.date));
+    const deltas = sortedValues.slice(1).map((value, index) => value.clicks - sortedValues[index].clicks);
+
+    return {
+      player,
+      dailyClicks: deltas.length ? deltas[deltas.length - 1] : 0,
+      averageDailyClicks: deltas.length
+        ? deltas.reduce((total, value) => total + value, 0) / deltas.length
+        : 0,
+    };
+  });
 };
 
 const getPositionDelta = (player, rows, previousRows) => {
@@ -239,52 +219,73 @@ const getPositionDelta = (player, rows, previousRows) => {
   return { label: '•', className: 'move-same' };
 };
 
-const getPlayerClickIncrease = (player, allRows) => {
-  const playerRows = [...allRows]
-    .filter((row) => row.player === player && row.date && row.date !== 'Latest')
-    .sort((a, b) => parseSortableDate(a.date) - parseSortableDate(b.date));
-
-  if (playerRows.length < 2) {
-    return 0;
-  }
-
-  const latest = playerRows[playerRows.length - 1];
-  const previous = playerRows[playerRows.length - 2];
-  return latest.clicks - previous.clicks;
-};
+let activeLeaderboardView = 'total';
 
 const renderLeaderboard = (rows) => {
   const tableBody = document.getElementById('leaderboard-body');
   if (!tableBody) return;
 
-  const previousRows = JSON.parse(sessionStorage.getItem('leaderboard-previous') || '[]');
-  const sortedRows = [...rows].sort((a, b) => Number(a.position) - Number(b.position));
-  const allRows = Array.isArray(window.__clickaAllRows) ? window.__clickaAllRows : sortedRows;
+  const allRows = Array.isArray(window.__clickaAllRows) ? window.__clickaAllRows : rows;
+  const metricKey = activeLeaderboardView === 'average'
+    ? 'averageDailyClicks'
+    : activeLeaderboardView === 'total' ? 'totalClicks' : 'dailyClicks';
+  const metricLabel = activeLeaderboardView === 'average'
+    ? 'Average Daily Clicks'
+    : activeLeaderboardView === 'total' ? 'Total Clicks' : 'Daily Clicks';
+  const previousKey = `leaderboard-previous-${activeLeaderboardView}`;
+  const previousRows = JSON.parse(sessionStorage.getItem(previousKey) || '[]');
+  const metricsByPlayer = new Map(
+    getPlayerDailyClickMetrics(allRows).map((entry) => [entry.player, entry])
+  );
+  filterLatestRows(allRows).forEach((entry) => {
+    const metrics = metricsByPlayer.get(entry.player) || { player: entry.player };
+    metricsByPlayer.set(entry.player, { ...metrics, totalClicks: entry.clicks });
+  });
+  const sortedRows = [...new Set(allRows.map((entry) => entry.player))]
+    .map((player) => ({ player, [metricKey]: metricsByPlayer.get(player)?.[metricKey] || 0 }))
+    .sort((a, b) => b[metricKey] - a[metricKey] || a.player.localeCompare(b.player));
+  const metricHeading = document.getElementById('leaderboard-metric-heading');
+  if (metricHeading) metricHeading.textContent = metricLabel;
 
   tableBody.innerHTML = sortedRows.length
     ? sortedRows
         .map((row, index) => {
-          const position = Number(row.position) || index + 1;
           const delta = getPositionDelta(row.player, sortedRows, previousRows);
-          const increase = getPlayerClickIncrease(row.player, allRows);
-          const increaseClass = increase > 0 ? 'increase-up' : increase < 0 ? 'increase-down' : 'increase-flat';
-          const increaseLabel = `${increase > 0 ? '+' : ''}${formatNumber(increase)}`;
+          const value = row[metricKey];
 
           return `
             <tr>
-              <td>${position}</td>
+              <td>${index + 1}</td>
               <td>${row.player}</td>
-              <td>${row.date}</td>
-              <td>${formatNumber(row.clicks)}</td>
-              <td><span class="move-badge ${increaseClass}">${increaseLabel}</span></td>
+              <td>${formatNumber(value, activeLeaderboardView === 'average' ? 1 : 0)}</td>
               <td><span class="move-badge ${delta.className}">${delta.label}</span></td>
             </tr>
           `;
         })
         .join('')
-    : '<tr><td colspan="6" class="empty-state">No leaderboard data yet.</td></tr>';
+    : '<tr><td colspan="4" class="empty-state">No leaderboard data yet.</td></tr>';
 
-  sessionStorage.setItem('leaderboard-previous', JSON.stringify(sortedRows));
+  sessionStorage.setItem(previousKey, JSON.stringify(sortedRows));
+};
+
+const initializeLeaderboardTabs = () => {
+  document.querySelectorAll('[data-leaderboard-view]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      activeLeaderboardView = ['daily', 'average', 'total'].includes(tab.dataset.leaderboardView)
+        ? tab.dataset.leaderboardView
+        : 'daily';
+
+      document.querySelectorAll('[data-leaderboard-view]').forEach((otherTab) => {
+        const isActive = otherTab === tab;
+        otherTab.classList.toggle('is-active', isActive);
+        otherTab.setAttribute('aria-selected', String(isActive));
+      });
+
+      const panel = document.getElementById('leaderboard-panel');
+      if (panel) panel.setAttribute('aria-labelledby', tab.id);
+      renderLeaderboard(window.__clickaAllRows || []);
+    });
+  });
 };
 
 const updateSummaryCards = (rows) => {
@@ -471,4 +472,5 @@ const fetchLeaderboard = async () => {
 };
 
 initializeTheme();
+initializeLeaderboardTabs();
 fetchLeaderboard();

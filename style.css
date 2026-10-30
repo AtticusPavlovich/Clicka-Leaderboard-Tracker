@@ -303,6 +303,28 @@ h1 {
   font-size: 1rem;
 }
 
+.leaderboard-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.leaderboard-tab {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: var(--panel-strong);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.leaderboard-tab.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--panel);
+}
+
 .muted {
   color: var(--muted);
   font-size: 0.8rem;

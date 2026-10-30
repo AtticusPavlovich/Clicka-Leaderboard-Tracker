@@ -36,16 +36,16 @@
           <span class="stat-label">Total Clicks</span>
           <strong id="total-clicks">0</strong>
         </article>
+        <article class="stat-card accent-green">
+          <span class="stat-label">Most Daily Clicks</span>
+          <strong id="best-jump">0</strong>
+        </article>
         <article class="stat-card accent-gold">
           <span class="stat-label">Highest Total</span>
           <strong id="highest-total">0</strong>
         </article>
-        <article class="stat-card accent-green">
-          <span class="stat-label">Best Daily Jump</span>
-          <strong id="best-jump">0</strong>
-        </article>
         <article class="stat-card accent-blue">
-          <span class="stat-label">Leader Today</span>
+          <span class="stat-label">All-Time Leader</span>
           <strong id="leader-name">-</strong>
         </article>
       </section>
@@ -69,18 +69,56 @@
       <section class="panel table-panel">
         <div class="panel-header">
           <h2>Leaderboard</h2>
-          <span class="muted">Sorted by Position</span>
+          <div class="leaderboard-tabs" role="tablist" aria-label="Leaderboard type">
+            <button
+              id="daily-leaderboard-tab"
+              class="leaderboard-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="leaderboard-panel"
+              data-leaderboard-view="daily"
+            >
+              Daily Clicks
+            </button>
+            <button
+              id="average-leaderboard-tab"
+              class="leaderboard-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="leaderboard-panel"
+              data-leaderboard-view="average"
+            >
+              Average Daily Clicks
+            </button>
+            <button
+              id="total-leaderboard-tab"
+              class="leaderboard-tab is-active"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="leaderboard-panel"
+              data-leaderboard-view="total"
+            >
+              Total Clicks
+            </button>
+          </div>
         </div>
 
-        <div class="table-wrap">
-          <table>
+        <div
+          id="leaderboard-panel"
+          class="table-wrap"
+          role="tabpanel"
+          aria-labelledby="total-leaderboard-tab"
+          tabindex="0"
+        >
+          <table id="leaderboard-table">
             <thead>
               <tr>
                 <th>Pos</th>
                 <th>Player</th>
-                <th>Date</th>
-                <th>Clicks</th>
-                <th>Click Increase</th>
+                <th id="leaderboard-metric-heading">Daily Clicks</th>
                 <th>Move</th>
               </tr>
             </thead>
